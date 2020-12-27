@@ -7,6 +7,8 @@ import subprocess
 import os
 from subprocess import PIPE, Popen
 
+SKIP_CHECKS = []
+
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -18,39 +20,51 @@ def load_exercise_order():
     return exercises
 
 
+def flake_check(exercise, flake8_check=True):
+    flake8_cmd = "flake8 exercises/{exercise}.py".format(
+        exercise=exercise)
+    if flake8_check:
+        exit_code = subprocess.call(
+            flake8_cmd, shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT
+        )
+        if exit_code != 0:
+            p = Popen(["flake8",
+                       "exercises/{exercise}.py".format(
+                        exercise=exercise)],
+                      stdin=PIPE,
+                      stdout=PIPE)
+            output, err = p.communicate()
+            return output.decode("utf-8")
+
+
 def check_exercises(flake8_check=False):
     for exercise in exercises:
-        cmd = "python3 exercises/{exercise}.py".format(exercise=exercise)
-        flake8_cmd = "flake8 exercises/{exercise}.py".format(exercise=exercise)
-        try:
-            if flake8_check:
-                exit_code = subprocess.call(
-                    flake8_cmd, shell=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.STDOUT
-                )
-                if exit_code != 0:
-                    p = Popen(["flake8",
-                               "exercises/{exercise}.py".format(
-                                exercise=exercise)],
-                              stdin=PIPE,
-                              stdout=PIPE)
-                    output, err = p.communicate()
-                    return output.decode("utf-8")
+        if exercise not in SKIP_CHECKS:
+            cmd = "python3 exercises/{exercise}.py".format(
+                exercise=exercise)
 
-            exit_code = subprocess.call(cmd,
-                                        shell=True,
-                                        stdout=subprocess.DEVNULL,
-                                        stderr=subprocess.STDOUT)
-            if exit_code != 0:
-                return subprocess.check_output(cmd, shell=True)
-            else:
-                print(
-                    "exercises/{exercise}.py passed".format(
-                        exercise=exercise)
-                     )
-        except subprocess.CalledProcessError:
-            break
+            try:
+                flake_check(exercise, flake8_check)
+                exit_code = subprocess.call(cmd,
+                                            shell=True,
+                                            stdout=subprocess.DEVNULL,
+                                            stderr=subprocess.STDOUT)
+                if exit_code != 0:
+                    print(
+                        "❌ exercises/{exercise}.py failed".format(
+                            exercise=exercise)
+                         )
+                    return subprocess.check_output(cmd, shell=True)
+                else:
+                    print(
+                        "✅ exercises/{exercise}.py passed".format(
+                            exercise=exercise)
+                         )
+                    SKIP_CHECKS.append(exercise)
+            except subprocess.CalledProcessError:
+                break
 
 
 class ModificationWatcher(FileSystemEventHandler):
