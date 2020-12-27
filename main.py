@@ -7,6 +7,7 @@ import subprocess
 import os
 from subprocess import PIPE, Popen
 
+
 def load_exercise_order():
     with open("exercises/exercises.yaml") as f:
         exercises = yaml.safe_load(f)
@@ -25,13 +26,13 @@ def check_exercises(flake8_check=False):
                     stderr=subprocess.STDOUT
                 )
                 if exit_code != 0:
-                    p = Popen(["flake8", "exercises/{exercise}.py".format(
+                    p = Popen(["flake8",
+                               "exercises/{exercise}.py".format(
                                 exercise=exercise)],
                               stdin=PIPE,
                               stdout=PIPE)
                     output, err = p.communicate()
                     return output.decode("utf-8")
-
 
             exit_code = subprocess.call(cmd,
                                         shell=True,
