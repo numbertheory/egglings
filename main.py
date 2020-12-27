@@ -4,7 +4,8 @@ from watchdog.events import FileSystemEventHandler
 from datetime import datetime, timedelta
 import yaml
 import subprocess
-
+import os
+from subprocess import PIPE, Popen
 
 def load_exercise_order():
     with open("exercises/exercises.yaml") as f:
@@ -12,10 +13,26 @@ def load_exercise_order():
     return exercises
 
 
-def check_exercises():
+def check_exercises(flake8_check=False):
     for exercise in exercises:
         cmd = "python3 exercises/{exercise}.py".format(exercise=exercise)
+        flake8_cmd = "flake8 exercises/{exercise}.py".format(exercise=exercise)
         try:
+            if flake8_check:
+                exit_code = subprocess.call(
+                    flake8_cmd, shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.STDOUT
+                )
+                if exit_code != 0:
+                    p = Popen(["flake8", "exercises/{exercise}.py".format(
+                                exercise=exercise)],
+                              stdin=PIPE,
+                              stdout=PIPE)
+                    output, err = p.communicate()
+                    return output.decode("utf-8")
+
+
             exit_code = subprocess.call(cmd,
                                         shell=True,
                                         stdout=subprocess.DEVNULL,
@@ -29,7 +46,6 @@ def check_exercises():
                      )
         except subprocess.CalledProcessError:
             break
-
 
 
 class ModificationWatcher(FileSystemEventHandler):
@@ -54,7 +70,10 @@ if __name__ == "__main__":
     observer.start()
 
     try:
-        exercise_check = check_exercises()
+        if os.getenv('EGGLINGS_FLAKE8'):
+            exercise_check = check_exercises(flake8_check=True)
+        else:
+            exercise_check = check_exercises(flake8_check=False)
         if exercise_check:
             print(exercise_check)
         while True:
