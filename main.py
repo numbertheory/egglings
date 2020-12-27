@@ -8,6 +8,10 @@ import os
 from subprocess import PIPE, Popen
 
 
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def load_exercise_order():
     with open("exercises/exercises.yaml") as f:
         exercises = yaml.safe_load(f)
@@ -60,7 +64,12 @@ class ModificationWatcher(FileSystemEventHandler):
             return
         else:
             self.last_modified = datetime.now()
-        print(f'Event type: {event.event_type}  path : {event.src_path}')
+        if os.getenv('EGGLINGS_FLAKE8'):
+            clear_screen()
+            check_exercises(flake8_check=True)
+        else:
+            clear_screen()
+            check_exercises(flake8_check=False)
 
 
 if __name__ == "__main__":
