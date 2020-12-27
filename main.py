@@ -5,23 +5,32 @@ from datetime import datetime, timedelta
 import yaml
 import subprocess
 
+
 def load_exercise_order():
     with open("exercises/exercises.yaml") as f:
         exercises = yaml.safe_load(f)
     return exercises
+
 
 def check_exercises():
     for exercise in exercises:
         cmd = "python3 exercises/{exercise}.py".format(exercise=exercise)
         try:
             exit_code = subprocess.call(cmd,
-                shell=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.STDOUT)
+                                        shell=True,
+                                        stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.STDOUT)
             if exit_code != 0:
                 return subprocess.check_output(cmd, shell=True)
-        except:
-            pass
+            else:
+                print(
+                    "exercises/{exercise}.py passed".format(
+                        exercise=exercise)
+                     )
+        except subprocess.CalledProcessError:
+            break
+
+
 
 class ModificationWatcher(FileSystemEventHandler):
     def __init__(self):
